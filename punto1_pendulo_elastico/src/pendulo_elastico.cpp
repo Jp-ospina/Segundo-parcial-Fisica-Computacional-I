@@ -100,3 +100,50 @@ void penduloResorte() {
         cerr << "Error: No se pudo abrir el archivo para escritura.\n";
     }
 }
+
+/**
+ * @brief Función auxiliar interna que calcula el sistema de EDOs de primer orden.
+ * Vector de estado u = [z, z_dot, theta, theta_dot]
+ * Retorna du/dt = [z_dot, z_dot_dot, theta_dot, theta_dot_dot]
+ */
+vector<double> sistemaEcuaciones(const vector<double> &u, double m, double k, double l0, double g) {
+    double z = u[0];
+    double z_dot = u[1];
+    double theta = u[2];
+    double theta_dot = u[3];
+    double r = l0 + z;
+
+    vector<double> du(4);
+    du[0] = z_dot;                                                    // dz/dt
+    du[1] = r * theta_dot * theta_dot - (k / m) * z + g * cos(theta); // dz_dot/dt
+    du[2] = theta_dot;                                                // dtheta/dt
+    du[3] = (-g * sin(theta) - 2.0 * z_dot * theta_dot) / r;          // dtheta_dot/dt
+
+    return du;
+}
+
+/**
+ * @brief Implementación del solucionador Runge-Kutta de 4to Orden (RK4).
+ */
+vector<double> calcularDerivadas(double t, const vector<double> &u, double m, double k, double l0, double g, double dt) {
+    vector<double> k1 = sistemaEcuaciones(u, m, k, l0, g);
+
+    vector<double> u_k2(4);
+    for(int i = 0; i < 4; ++i) u_k2[i] = u[i] + 0.5 * dt * k1[i];
+    vector<double> k2 = sistemaEcuaciones(u_k2, m, k, l0, g);
+
+    vector<double> u_k3(4);
+    for(int i = 0; i < 4; ++i) u_k3[i] = u[i] + 0.5 * dt * k2[i];
+    vector<double> k3 = sistemaEcuaciones(u_k3, m, k, l0, g);
+
+    vector<double> u_k4(4);
+    for(int i = 0; i < 4; ++i) u_k4[i] = u[i] + dt * k3[i];
+    vector<double> k4 = sistemaEcuaciones(u_k4, m, k, l0, g);
+
+    vector<double> u_siguiente(4);
+    for(int i = 0; i < 4; ++i) {
+        u_siguiente[i] = u[i] + (dt / 6.0) * (k1[i] + 2.0 * k2[i] + 2.0 * k3[i] + k4[i]);
+    }
+
+    return u_siguiente;
+}
